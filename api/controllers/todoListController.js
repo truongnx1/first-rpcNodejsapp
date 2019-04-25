@@ -9,11 +9,12 @@ let GetBlocksBusy = false;
 let GetBlockHashBusy = false;
 let BlockInfo;
 let blocks=[];
+let transaction=[];
 
 
 setInterval(getBlockCount, 5000);
 exports.get_block_hashs = function(){
-	saveBlockCount(3);
+	saveBlockCount(110);
 
 	// Block_Count.create({_count:0}, function (err, small) {
  //  		if (err) return handleError(err);
@@ -116,9 +117,9 @@ function getBlockHashs(){
 				try {
 				 	const hash = JSON.parse(body)
 				 // 	hashes.push(hash.result);	
-					// console.log('hashes: ',JSON.parse(body).result);
+					console.log('hashes: ',JSON.parse(body).result);
 					// console.log("Got result", hashes.length);
-					//checkForFinishing(count, hashes);
+					// checkForFinishing(count, hashes);
 					getBlocks(hash.result);
 				} catch(err) {
 			  		console.error(err)
@@ -131,37 +132,40 @@ function getBlockHashs(){
 }
 
 function getBlocks(hash){
-		let options = {
-			url: "http://localhost:51475",
-			method: "post",
-			headers:
-			{ 
-				"content-type": "text/plain"
-			},
-			auth: {	
-				user: "truong",
-				pass: "1"
-			},
-			body: JSON.stringify({"jsonrpc": "2.0", "id": "curltest", "method": "getblock","params":[hash]})
-		};
+	let options = {
+		url: "http://localhost:51475",
+		method: "post",
+		headers:
+		{ 
+			"content-type": "text/plain"
+		},
+		auth: {	
+			user: "truong",
+			pass: "1"
+		},
+		body: JSON.stringify({"jsonrpc": "2.0", "id": "curltest", "method": "getblock","params":[hash]})
+	};
 
 
-		request(options, (error, response, body) => {
-			if (error) {
-				console.log("getblocks err");
-			} else {
-				try {
-  				  const block = JSON.parse(body)
-  				  blocks.push(block.result);
-				  console.log(block.result);
-				} catch(err) {
-				  console.error("err:  ",hash)
-				  return;
-				}
-				
+	request(options, (error, response, body) => {
+		if (error) {
+			console.log("getblocks err");
+		} else {
+			try {
+			  	const block = JSON.parse(body).result;
+			  	blocks.push(block);
+			  	for(var i=0;i<block.tx.length;i++){
+			  		console.log("block txid: ",block.tx[i]);
+			  		getTransactions(block.tx[i]);
+			  	}	
+			} catch(err) {
+			  console.error("err:  ",hash)
+			  return;
 			}
-		});
-	}
+			
+		}
+	});
+}
 
 function checkForFinishing(count, hashes) {
 	if (hashes.length == count) {
@@ -172,8 +176,37 @@ function checkForFinishing(count, hashes) {
 	}
 }
 
-function getTransactions() {
-	//console.log(hashes);
+function getTransactions(txd) {
+	let options = {
+		url: "http://localhost:51475",
+		method: "post",
+		headers:
+		{ 
+			"content-type": "text/plain"
+		},
+		auth: {	
+			user: "truong",
+			pass: "1"
+		},
+		body: JSON.stringify({"jsonrpc": "2.0", "id": "curltest", "method": "getrawtransaction","params":[txd,true]})
+	};
+
+
+	request(options, (error, response, body) => {
+		if (error) {
+			console.log("getblocks err");
+		} else {
+			try {
+	  			const transaction = JSON.parse(body).result;
+			  	//blocks.push(block.result);
+			  	console.log("transaction: ",transaction);
+			} catch(err) {
+			  	console.error("err:  ",body)
+			  	return;
+			}
+			
+		}
+	});
 }
 	
 
