@@ -1,5 +1,6 @@
-var mongoose = require('mongoose'),
+var mongodb = require('../models/todoListModel.js'),
 Block_Count = mongoose.model('BlockCount');
+Block = mongoose.model('Block');
 const request = require('request');
 let username = process.argv.length < 2 ? "default-username" : process.argv[2];
 let password = process.argv.length < 3 ? "default-password" : process.argv[3];
@@ -8,11 +9,11 @@ let GetBlocksBusy = false;
 let GetBlockHashBusy = false;
 let BlockInfo;
 let blocks=[];
-let checkBlockCountChange=true;
 
-setInterval(blockCount, 1000);
+
+setInterval(getBlockCount, 5000);
 exports.get_block_hashs = function(){
-	getBlockCount();
+	saveBlockCount(3);
 
 	// Block_Count.create({_count:0}, function (err, small) {
  //  		if (err) return handleError(err);
@@ -40,17 +41,23 @@ exports.get_block_hashs = function(){
 // }
 
 function saveBlockCount(count){
-	id=BlockCount._id;
-	Block_Count.findByIdAndUpdate(id,{_count: count});
+	id=BlockCount.id;
+	Block_Count.findByIdAndUpdate(id,{_count: count},{new:true},function(err,doc){
+		if(err)
+			console.log(err);
+	});
 }
+
 function blockCount(){
 	Block_Count.find(function (err, count) {
-	  	if (err) return console.error(err);
-	  	BlockCount=count[0];
-	  	console.log(BlockCount);	
+	  	if (err) return console.error(err);	
+	  	// if(checkBlockCountChange) return;
+  		BlockCount=count[0];
+  		console.log("blockCount: ",BlockCount._count);
 	});
 }
 function getBlockCount() {
+	blockCount();
 	console.log("Start get block count");
 	let options = {
 		url: "http://localhost:51475",
@@ -71,8 +78,12 @@ function getBlockCount() {
 				try {
 					console.log("End get block count.");
 					count = (JSON.parse(body)).result;
-					console.log('Block count:',count);
-					getBlockHashs();
+					console.log('count:',count);
+					console.log("BlockCOUNT: ",BlockCount._count);
+					if(BlockCount._count !=count){
+						getBlockHashs();
+						saveBlockCount(count);
+					}
 				} catch(err) {
 				  console.error(err)
 				}				
@@ -83,7 +94,7 @@ function getBlockCount() {
 
 function getBlockHashs(){
 	console.log("Start get block hash");
-	for(var i=0;i<count;i++){
+	for(i=count;i>BlockCount._count;i--){
 		console.log("Start getting block", i);
 		let options = {
 			url: "http://localhost:51475",
@@ -104,20 +115,21 @@ function getBlockHashs(){
 			} else {
 				try {
 				 	const hash = JSON.parse(body)
-				 	hashes.push(hash.result);	
-					console.log('hashes: ',JSON.parse(body).result);
-					console.log("Got result", hashes.length);
-					checkForFinishing(count, hashes);
+				 // 	hashes.push(hash.result);	
+					// console.log('hashes: ',JSON.parse(body).result);
+					// console.log("Got result", hashes.length);
+					//checkForFinishing(count, hashes);
 					getBlocks(hash.result);
 				} catch(err) {
 			  		console.error(err)
 				}
 				
 			}
-	});
+		});
 	}
+	checkBlockCountChange=false;
 }
-//setInterval(callback, repeat, arg1, arg2, arg3);
+
 function getBlocks(hash){
 		let options = {
 			url: "http://localhost:51475",
@@ -139,8 +151,21 @@ function getBlocks(hash){
 				console.log("getblocks err");
 			} else {
 				try {
-  				  const blockhash = JSON.parse(body)
-				  console.log(blockhash);
+  				  const block = JSON.parse(body)
+  				  blocks.push(block.result);
+				  console.log(block.result);
+				  Block.findOneAndUpdate(
+    				{foo: 'bar'}, // find a document with that filter
+    				block.result, // document to insert when nothing was found
+    				{upsert: true, new: true, runValidators: true}, // options
+    				function (err, doc) { // callback
+					        if (err) {
+					            // handle error
+					        } else {
+					            // handle document
+					        }
+					    }
+					);
 				} catch(err) {
 				  console.error("err:  ",hash)
 				  return;
