@@ -9,7 +9,7 @@ let GetBlocksBusy = false;
 let GetBlockHashBusy = false;
 let BlockInfo;
 let blocks=[];
-let transaction=[];
+let transactions=[];
 
 
 setInterval(getBlockCount, 5000);
@@ -92,9 +92,18 @@ function getBlockCount() {
 	});
 };
 
+function getLastBlock(){
+	// lay block cuoi cung trong db
+}
+
+function checkNodeForked(){
+	var lastblock = getLastBlock();
+
+}
 
 function getBlockHashs(){
 	console.log("Start get block hash");
+	if(GetBlockHashBusy) return;
 	for(i=count;i>BlockCount._count;i--){
 		console.log("Start getting block", i);
 		let options = {
@@ -170,7 +179,6 @@ function getBlocks(hash){
 function checkForFinishing(count, hashes) {
 	if (hashes.length == count) {
 		console.log("Done");
-		getTransactions();
 	} else {
 		console.log("continue...");
 	}
@@ -200,11 +208,11 @@ function getTransactions(txd) {
 	  			const transaction = JSON.parse(body).result;
 			  	//blocks.push(block.result);
 			  	console.log("transaction: ",transaction);
+			  	transactions.push(transaction);
 			} catch(err) {
 			  	console.error("err:  ",body)
 			  	return;
 			}
-			
 		}
 	});
 }
